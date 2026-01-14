@@ -10,7 +10,7 @@ from PIL import Image
 from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
 
 from prompt import PROMPT
-from deepeyes_tools import VisualToolBoxV5
+from deepeyes_tools_v2 import VisualToolBoxV5
 from qwen_vl_utils import process_vision_info
 
 
@@ -19,7 +19,7 @@ from qwen_vl_utils import process_vision_info
 # ==========================
 
 MODEL_PATH = "/root/local-nvme/models/Lixiang__ChenShawn-DeepEyes-7B/Lixiang/ChenShawn-DeepEyes-7B"
-IMAGE_PATH = "/root/local-nvme/projects/deepeyes/circuit.png"
+IMAGE_PATH = "/root/local-nvme/projects/deepeyes/comparation.png"
 DEVICE = "cuda"          # 和你原来的代码一样
 MAX_TURNS = 6
 MAX_NEW_TOKENS = 512
@@ -207,14 +207,10 @@ def run_deepeyes(image_path: str, question: str) -> Tuple[str, List[str]]:
 
     # 4) 构造首轮 messages
     extra_rules = """
-                    [当前任务的特别规则，请严格遵守]
-
-                    1. 在输出 <answer> 之前，必须至少调用 2 次 image_zoom_in_tool。
-                    2. 每次调用 image_zoom_in_tool 后，你必须根据放大图更新你的 <think> 推理。
-                    3. 如果你仍然不确定答案，禁止输出 <answer>，而是继续调用 image_zoom_in_tool。
-                    4. 第一次 zoom 用于粗略定位相关区域，后续 zoom 应该逐步缩小范围，集中在关键目标附近。
+                    [当前任务的特别规则，必须严格遵守]
+                    必须在一次think里调用3次image_zoom_in_tool，否则结果不被接收，不允许输出answer!
                     """
-    text_qas = question + PROMPT.USER_PROMPT_V5 # question + "\n" + extra_rules + "\n" + PROMPT.USER_PROMPT_V5 
+    text_qas = question + "\n" + PROMPT.USER_PROMPT_V5 #+ "\n" + extra_rules 
     messages: List[dict] = [
         {
             "role": "system",
@@ -256,10 +252,22 @@ def run_deepeyes(image_path: str, question: str) -> Tuple[str, List[str]]:
             }
         )
 
-        # 6) 如果没有 tool_call，看看 answer，有就直接结束
-        if "<tool_call>" not in out_text:
-            ans = extract_final_answer(out_text)
-            final_answer = ans if ans is not None else out_text.strip()
+        # ==========================
+        # ✅ 仅修 <tool_call> 检测逻辑：
+        #    不再靠字符串 "<tool_call>"，而是用 toolbox.extract_action
+        #    这样能识别“坏格式/裸 JSON”的 tool call
+        # ==========================
+        actions = toolbox.extract_action(out_text)
+        ans = extract_final_answer(out_text)
+
+        # 6) 只有当：没有任何 tool 调用 且 有 answer，才结束
+        if (not actions) and (ans is not None):
+            final_answer = ans
+            break
+
+        # 6.1 没有 tool 调用 且 没有 answer：按你原逻辑也结束（原来是直接 break）
+        if not actions:
+            final_answer = out_text.strip()
             break
 
         # 7) 有 tool_call：交给工具环境，执行 zoom-in
@@ -317,6 +325,6 @@ def run_deepeyes(image_path: str, question: str) -> Tuple[str, List[str]]:
 # ==========================
 
 if __name__ == "__main__":
-    q = "跟踪离开面包板上端口5的电线，看看它到达哪个组件。zoom的对象应该是有利于你思考的区域，即使要验证结果，也要把出发点和终点都包含进去"
+    q = "The first image shows an object made of geometric shapes, which together form an object. Does this SAME object appear in the second image? For example, if a component shape were to be rotated or translated, it would be a different object. Respond with {yes} or {no} (inside the curly brackets). There may be extra shapes in Image 2 that are not part of the original object; as long as the object from Image 1 is present, the answer is yes even if there are other shapes present."
     ans, outs = run_deepeyes(IMAGE_PATH, q)
     print("\n==== FINAL ANSWER ====\n", ans)
