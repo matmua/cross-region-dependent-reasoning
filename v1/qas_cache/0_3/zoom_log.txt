@@ -1,0 +1,2 @@
+turn=1, idx=1, bbox=[10, 100, 230, 210], label=the object in the first image
+turn=1, idx=1, bbox=[51, 103, 222, 210], label=the object in the first image

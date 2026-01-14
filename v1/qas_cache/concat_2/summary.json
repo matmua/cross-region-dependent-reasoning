@@ -1,0 +1,5 @@
+{
+  "image_path": "/root/local-nvme/deepeyes/v1/concat.png",
+  "question": "The first image shows an object made of geometric shapes, which together form an object. Does this SAME object appear in the second image? For example, if a component shape were to be rotated or translated, it would be a different object. Respond with {yes} or {no} (inside the curly brackets). There may be extra shapes in Image 2 that are not part of the original object; as long as the object from Image 1 is present, the answer is yes even if there are other shapes present.",
+  "final_answer": "{yes}"
+}

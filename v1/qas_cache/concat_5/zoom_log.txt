@@ -1,0 +1,1 @@
+turn=1, idx=1, bbox=[576, 174, 680, 262], label=blue triangle

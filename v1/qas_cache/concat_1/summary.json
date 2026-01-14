@@ -1,0 +1,5 @@
+{
+  "image_path": "/root/local-nvme/deepeyes/v1/concat.png",
+  "question": "跟踪离开面包板上端口5的电线，看看它到达哪个组件。zoom的对象应该是有利于你思考的区域，即使要验证结果，也要把出发点和终点都包含进去",
+  "final_answer": "电线从面包板上端口5离开后，到达了蓝色的三角形组件。"
+}
